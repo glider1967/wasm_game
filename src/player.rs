@@ -107,6 +107,7 @@ impl PlayerStateMachine {
     /// プレイヤーが適切な状態の時に適切なイベントが起こったときにのみ、状態が変わる。
     fn transition(self, event: PlayerEvent) -> Self {
         match (self, event) {
+            // キー入力からの速度更新。被弾から復帰中はイベントを受け付けないことに注意。
             (PlayerStateMachine::Alive(state), PlayerEvent::Move(vx, vy)) => {
                 state.set_velocity(vx, vy).into()
             }
@@ -114,12 +115,16 @@ impl PlayerStateMachine {
                 state.set_velocity(vx, vy).into()
             }
 
+            // 通常状態から他の状態への移行。通常状態への復帰は特定フレーム後に自動的に行われる。
             (PlayerStateMachine::Alive(state), PlayerEvent::Bomb) => state.bomb().into(),
             (PlayerStateMachine::Alive(state), PlayerEvent::Hit) => state.hit().into(),
 
+            // 更新処理はすべての状態に行う。
             (PlayerStateMachine::Alive(state), PlayerEvent::Update) => state.update().into(),
             (PlayerStateMachine::Bombing(state), PlayerEvent::Update) => state.update().into(),
             (PlayerStateMachine::Reloading(state), PlayerEvent::Update) => state.update().into(),
+
+            // 他の場合は状態を変えない。
             _ => self,
         }
     }
@@ -284,6 +289,7 @@ mod player_states {
         pub fn update(mut self) -> BombingEndState {
             self.context = self.context.update(BOMB_TIME);
 
+            // `BOMB_TIME`経過したら通常状態へ。そうでないならまだボム中。
             if self.context.frame >= BOMB_TIME {
                 BombingEndState::Complete(self.end_bomb())
             } else {
@@ -324,6 +330,7 @@ mod player_states {
         pub fn update(mut self) -> ReloadEndState {
             self.context = self.context.update(RELOAD_TIME);
 
+            // `RELOAD_TIME`経過したら通常状態へ。そうでないならまだ復帰中。
             if self.context.frame >= RELOAD_TIME {
                 ReloadEndState::Complete(self.end_reload())
             } else {
