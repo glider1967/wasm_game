@@ -50,11 +50,7 @@ impl Game for StgGame {
                 width: 500.0,
                 height: 540.0,
             });
-
-            level.player.draw(renderer);
-            for bullet in level.bullets.borrow().iter() {
-                bullet.draw(renderer);
-            }
+            level.draw(renderer);
         }
     }
 }

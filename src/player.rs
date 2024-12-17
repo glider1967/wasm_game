@@ -1,4 +1,7 @@
-use crate::{engine::{KeyState, Point, Rect, Renderer}, level::Bullet};
+use crate::{
+    engine::{KeyState, Point, Rect, Renderer},
+    level::Bullet,
+};
 
 use self::player_states::*;
 
@@ -42,7 +45,9 @@ impl Player {
     }
 
     pub fn is_collided(&self, bullet: &Bullet) -> bool {
-        self.state_machine.context().is_collided(&bullet.pos(), 10.0)
+        self.state_machine
+            .context()
+            .is_collided(&bullet.pos(), 10.0)
     }
 
     pub fn calc_velocity(keystate: &KeyState) -> (f32, f32) {
@@ -194,9 +199,9 @@ mod player_states {
         pub fn is_collided(&self, point: &Point, radius: f32) -> bool {
             let dx = point.x - self.position.x;
             let dy = point.y - self.position.y;
-            let distance = dx*dx + dy*dy;
+            let distance = dx * dx + dy * dy;
             let r = radius + 3.0;
-            distance < r*r
+            distance < r * r
         }
     }
 

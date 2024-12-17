@@ -6,8 +6,8 @@ use crate::{
 };
 
 pub struct Level {
-    pub player: Player,
-    pub bullets: RefCell<Vec<Bullet>>,
+    player: Player,
+    bullets: RefCell<Vec<Bullet>>,
 }
 
 impl Level {
@@ -36,13 +36,22 @@ impl Level {
         }
 
         // 画面外に飛んで行った弾を消す
-        self.bullets.borrow_mut().retain(|bullet| bullet.in_canvas());
+        self.bullets
+            .borrow_mut()
+            .retain(|bullet| bullet.in_canvas());
 
         // プレイヤーと敵弾の衝突判定
         for bullet in self.bullets.borrow().iter() {
             if self.player.is_collided(bullet) {
                 self.player.bomb();
             }
+        }
+    }
+
+    pub fn draw(&self, renderer: &Renderer) {
+        self.player.draw(renderer);
+        for bullet in self.bullets.borrow().iter() {
+            bullet.draw(renderer);
         }
     }
 }
@@ -72,10 +81,7 @@ impl Bullet {
     }
 
     pub fn in_canvas(&self) -> bool {
-            self.pos.x <= 550.0
-                && self.pos.x >= 50.0
-                && self.pos.y <= 570.0
-                && self.pos.y >= 30.0
+        self.pos.x <= 550.0 && self.pos.x >= 50.0 && self.pos.y <= 570.0 && self.pos.y >= 30.0
     }
 
     pub fn pos(&self) -> Point {
