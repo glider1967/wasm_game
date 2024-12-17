@@ -17,7 +17,7 @@ impl Player {
     }
 
     pub fn draw(&self, renderer: &Renderer) {
-        self.state_machine.context().draw(renderer);
+        self.state_machine.draw(renderer);
     }
 
     pub fn update(&mut self, vx: f32, vy: f32) {
@@ -26,6 +26,10 @@ impl Player {
 
     pub fn bomb(&mut self) {
         self.state_machine = self.state_machine.transition(PlayerEvent::Bomb);
+    }
+
+    pub fn hit(&mut self) {
+        self.state_machine = self.state_machine.transition(PlayerEvent::Hit);
     }
 
     pub fn is_collided(&self, bullet: &Bullet) -> bool {
@@ -68,8 +72,9 @@ impl Player {
 
 #[derive(Clone, Copy)]
 enum PlayerStateMachine {
-    Alive(PlayerState<Alive>),
-    Bombing(PlayerState<Bombing>),
+    Alive(PlayerState<Alive>),         // 生きている（通常状態）
+    Bombing(PlayerState<Bombing>),     // ボム状態
+    Reloading(PlayerState<Reloading>), // 被弾からの復帰状態
 }
 
 impl From<PlayerState<Alive>> for PlayerStateMachine {
@@ -84,13 +89,22 @@ impl From<PlayerState<Bombing>> for PlayerStateMachine {
     }
 }
 
+impl From<PlayerState<Reloading>> for PlayerStateMachine {
+    fn from(state: PlayerState<Reloading>) -> Self {
+        PlayerStateMachine::Reloading(state)
+    }
+}
+
 pub enum PlayerEvent {
-    Bomb,
-    Update,
-    Move(f32, f32),
+    Bomb,           // ボム
+    Hit,            // 被弾
+    Update,         // フレームごとの更新
+    Move(f32, f32), // プレイヤー速度の更新
 }
 
 impl PlayerStateMachine {
+    /// 状態遷移をする。
+    /// プレイヤーが適切な状態の時に適切なイベントが起こったときにのみ、状態が変わる。
     fn transition(self, event: PlayerEvent) -> Self {
         match (self, event) {
             (PlayerStateMachine::Alive(state), PlayerEvent::Move(vx, vy)) => {
@@ -99,9 +113,13 @@ impl PlayerStateMachine {
             (PlayerStateMachine::Bombing(state), PlayerEvent::Move(vx, vy)) => {
                 state.set_velocity(vx, vy).into()
             }
+
             (PlayerStateMachine::Alive(state), PlayerEvent::Bomb) => state.bomb().into(),
+            (PlayerStateMachine::Alive(state), PlayerEvent::Hit) => state.hit().into(),
+
             (PlayerStateMachine::Alive(state), PlayerEvent::Update) => state.update().into(),
             (PlayerStateMachine::Bombing(state), PlayerEvent::Update) => state.update().into(),
+            (PlayerStateMachine::Reloading(state), PlayerEvent::Update) => state.update().into(),
             _ => self,
         }
     }
@@ -110,6 +128,7 @@ impl PlayerStateMachine {
         match self {
             PlayerStateMachine::Alive(state) => &state.context(),
             PlayerStateMachine::Bombing(state) => &state.context(),
+            PlayerStateMachine::Reloading(state) => &state.context(),
         }
     }
 
@@ -120,6 +139,14 @@ impl PlayerStateMachine {
     fn set_velocity(self, vx: f32, vy: f32) -> Self {
         self.transition(PlayerEvent::Move(vx, vy))
     }
+
+    fn draw(&self, renderer: &Renderer) {
+        match self {
+            PlayerStateMachine::Alive(state) => state.draw(renderer),
+            PlayerStateMachine::Bombing(state) => state.draw(renderer),
+            PlayerStateMachine::Reloading(state) => state.draw(renderer),
+        }
+    }
 }
 
 mod player_states {
@@ -129,6 +156,9 @@ mod player_states {
 
     use super::PlayerStateMachine;
     const FLOOR: f32 = 475.0;
+    const NORMAL_LOOP: u8 = 30;
+    const RELOAD_TIME: u8 = 120;
+    const BOMB_TIME: u8 = 60;
 
     #[derive(Clone, Copy)]
     pub struct PlayerState<S> {
@@ -141,7 +171,6 @@ mod player_states {
         frame: u8,
         position: Point,
         velocity: Point,
-        is_shielded: bool,
     }
 
     impl PlayerContext {
@@ -170,11 +199,6 @@ mod player_states {
             self
         }
 
-        fn set_shield(mut self, shield: bool) -> Self {
-            self.is_shielded = shield;
-            self
-        }
-
         fn reset_frame(mut self) -> Self {
             self.frame = 0;
             self
@@ -187,32 +211,14 @@ mod player_states {
             let r = radius + 3.0;
             distance < r * r
         }
-
-        pub fn draw(&self, renderer: &Renderer) {
-            if self.is_shielded {
-                renderer.set_color("blue");
-            } else {
-                renderer.set_color("red");
-            }
-            let center = &Point {
-                x: self.position.x,
-                y: self.position.y,
-            };
-            renderer.draw_rect(&Rect {
-                x: center.x - 10.0,
-                y: center.y + 10.0,
-                width: 20.0,
-                height: -20.0 - self.frame as f32,
-            });
-
-            renderer.draw_circle(center, 3.0);
-        }
     }
 
     #[derive(Clone, Copy)]
     pub struct Alive;
     #[derive(Clone, Copy)]
     pub struct Bombing;
+    #[derive(Clone, Copy)]
+    pub struct Reloading;
 
     impl<S> PlayerState<S> {
         pub fn context(&self) -> &PlayerContext {
@@ -233,7 +239,6 @@ mod player_states {
                     frame: 0,
                     position: Point { x: 300.0, y: FLOOR },
                     velocity: Point { x: 0.0, y: 0.0 },
-                    is_shielded: false,
                 },
                 _state: PhantomData,
             }
@@ -241,46 +246,134 @@ mod player_states {
 
         pub fn bomb(self) -> PlayerState<Bombing> {
             PlayerState {
-                context: self.context.reset_frame().set_shield(true),
+                context: self.context.reset_frame(),
+                _state: PhantomData,
+            }
+        }
+
+        pub fn hit(self) -> PlayerState<Reloading> {
+            PlayerState {
+                context: self.context.reset_frame(),
                 _state: PhantomData,
             }
         }
 
         pub fn update(mut self) -> Self {
-            self.context = self.context.update(29);
+            self.context = self.context.update(NORMAL_LOOP);
             self
+        }
+
+        pub fn draw(&self, renderer: &Renderer) {
+            renderer.set_color("red");
+            let center = &Point {
+                x: self.context.position.x,
+                y: self.context.position.y,
+            };
+            renderer.draw_rect(&Rect {
+                x: center.x - 10.0,
+                y: center.y + 10.0,
+                width: 20.0,
+                height: -20.0 - self.context.frame as f32,
+            });
+
+            renderer.draw_circle(center, 3.0);
         }
     }
 
     impl PlayerState<Bombing> {
         pub fn update(mut self) -> BombingEndState {
-            self.context = self.context.update(60);
+            self.context = self.context.update(BOMB_TIME);
 
-            if self.context.frame >= 60 {
+            if self.context.frame >= BOMB_TIME {
                 BombingEndState::Complete(self.end_bomb())
             } else {
-                BombingEndState::Sliding(self)
+                BombingEndState::Bombing(self)
             }
         }
 
         pub fn end_bomb(self) -> PlayerState<Alive> {
             PlayerState {
-                context: self.context.reset_frame().set_shield(false),
+                context: self.context.reset_frame(),
                 _state: PhantomData,
             }
+        }
+
+        pub fn draw(&self, renderer: &Renderer) {
+            renderer.set_color("blue");
+            let center = &Point {
+                x: self.context.position.x,
+                y: self.context.position.y,
+            };
+            renderer.draw_rect(&Rect {
+                x: center.x - 10.0,
+                y: center.y + 10.0,
+                width: 20.0,
+                height: -20.0 - self.context.frame as f32,
+            });
+
+            renderer.draw_circle(center, 3.0);
         }
     }
 
     pub enum BombingEndState {
         Complete(PlayerState<Alive>),
-        Sliding(PlayerState<Bombing>),
+        Bombing(PlayerState<Bombing>),
+    }
+
+    impl PlayerState<Reloading> {
+        pub fn update(mut self) -> ReloadEndState {
+            self.context = self.context.update(RELOAD_TIME);
+
+            if self.context.frame >= RELOAD_TIME {
+                ReloadEndState::Complete(self.end_reload())
+            } else {
+                ReloadEndState::Reloading(self)
+            }
+        }
+
+        pub fn end_reload(self) -> PlayerState<Alive> {
+            PlayerState {
+                context: self.context.reset_frame(),
+                _state: PhantomData,
+            }
+        }
+
+        pub fn draw(&self, renderer: &Renderer) {
+            renderer.set_color("yellow");
+            let center = &Point {
+                x: 300.0,
+                y: FLOOR + (RELOAD_TIME - self.context.frame) as f32,
+            };
+            renderer.draw_rect(&Rect {
+                x: center.x - 10.0,
+                y: center.y + 10.0,
+                width: 20.0,
+                height: -20.0,
+            });
+
+            renderer.draw_circle(center, 3.0);
+        }
+    }
+
+    pub enum ReloadEndState {
+        Complete(PlayerState<Alive>),
+        Reloading(PlayerState<Reloading>),
     }
 
     impl From<BombingEndState> for PlayerStateMachine {
         fn from(value: BombingEndState) -> Self {
             match value {
                 BombingEndState::Complete(state) => state.into(),
-                BombingEndState::Sliding(state) => state.into(),
+                BombingEndState::Bombing(state) => state.into(),
+            }
+        }
+    }
+
+    impl From<ReloadEndState> for PlayerStateMachine {
+        fn from(value: ReloadEndState) -> Self {
+            match value {
+                ReloadEndState::Complete(state) => state.into(),
+                ReloadEndState::Reloading(state) => state.into(),
             }
         }
     }

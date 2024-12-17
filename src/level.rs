@@ -16,7 +16,7 @@ impl Level {
             player: Player::new(),
             bullets: RefCell::new(vec![
                 Bullet::new(&Point { x: 50.0, y: 50.0 }, &Point { x: 5.0, y: 5.0 }),
-                Bullet::new(&Point { x: 100.0, y: 50.0 }, &Point { x: 0.0, y: 2.0 }),
+                Bullet::new(&Point { x: 300.0, y: 50.0 }, &Point { x: 0.0, y: 2.0 }),
                 Bullet::new(&Point { x: 400.0, y: 300.0 }, &Point { x: -4.0, y: 4.0 }),
                 Bullet::new(&Point { x: 400.0, y: 300.0 }, &Point { x: -4.0, y: -4.0 }),
             ]),
@@ -43,7 +43,7 @@ impl Level {
         // プレイヤーと敵弾の衝突判定
         for bullet in self.bullets.borrow().iter() {
             if self.player.is_collided(bullet) {
-                self.player.bomb();
+                self.player.hit();
             }
         }
     }
