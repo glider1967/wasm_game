@@ -42,7 +42,7 @@ impl Player {
     }
 
     pub fn is_collided(&self, bullet: &Bullet) -> bool {
-        self.state_machine.context().is_collided(&bullet.pos, 10.0)
+        self.state_machine.context().is_collided(&bullet.pos(), 10.0)
     }
 
     pub fn calc_velocity(keystate: &KeyState) -> (f32, f32) {

@@ -36,12 +36,7 @@ impl Level {
         }
 
         // 画面外に飛んで行った弾を消す
-        self.bullets.borrow_mut().retain(|bullet| {
-            bullet.pos.x <= 550.0
-                && bullet.pos.x >= 50.0
-                && bullet.pos.y <= 570.0
-                && bullet.pos.y >= 30.0
-        });
+        self.bullets.borrow_mut().retain(|bullet| bullet.in_canvas());
 
         // プレイヤーと敵弾の衝突判定
         for bullet in self.bullets.borrow().iter() {
@@ -54,7 +49,7 @@ impl Level {
 
 #[derive(Clone, Copy)]
 pub struct Bullet {
-    pub pos: Point,
+    pos: Point,
     vel: Point,
 }
 
@@ -74,5 +69,16 @@ impl Bullet {
     pub fn draw(&self, renderer: &Renderer) {
         renderer.set_color("black");
         renderer.draw_circle(&self.pos, 10.0);
+    }
+
+    pub fn in_canvas(&self) -> bool {
+            self.pos.x <= 550.0
+                && self.pos.x >= 50.0
+                && self.pos.y <= 570.0
+                && self.pos.y >= 30.0
+    }
+
+    pub fn pos(&self) -> Point {
+        self.pos
     }
 }
