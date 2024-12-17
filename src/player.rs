@@ -1,5 +1,5 @@
 use crate::{
-    engine::{KeyState, Point, Rect, Renderer},
+    engine::{KeyState, Renderer},
     level::Bullet,
 };
 
@@ -17,23 +17,7 @@ impl Player {
     }
 
     pub fn draw(&self, renderer: &Renderer) {
-        if self.state_machine.context().is_shielded {
-            renderer.set_color("blue");
-        } else {
-            renderer.set_color("red");
-        }
-        let center = &Point {
-            x: self.state_machine.context().position.x,
-            y: self.state_machine.context().position.y,
-        };
-        renderer.draw_rect(&Rect {
-            x: center.x - 10.0,
-            y: center.y + 10.0,
-            width: 20.0,
-            height: -20.0 - self.state_machine.context().frame as f32,
-        });
-
-        renderer.draw_circle(center, 3.0);
+        self.state_machine.context().draw(renderer);
     }
 
     pub fn update(&mut self, vx: f32, vy: f32) {
@@ -141,7 +125,7 @@ impl PlayerStateMachine {
 mod player_states {
     use std::marker::PhantomData;
 
-    use crate::engine::Point;
+    use crate::engine::{Point, Rect, Renderer};
 
     use super::PlayerStateMachine;
     const FLOOR: f32 = 475.0;
@@ -154,10 +138,10 @@ mod player_states {
 
     #[derive(Clone, Copy)]
     pub struct PlayerContext {
-        pub frame: u8,
-        pub position: Point,
-        pub velocity: Point,
-        pub is_shielded: bool,
+        frame: u8,
+        position: Point,
+        velocity: Point,
+        is_shielded: bool,
     }
 
     impl PlayerContext {
@@ -202,6 +186,26 @@ mod player_states {
             let distance = dx * dx + dy * dy;
             let r = radius + 3.0;
             distance < r * r
+        }
+
+        pub fn draw(&self, renderer: &Renderer) {
+            if self.is_shielded {
+                renderer.set_color("blue");
+            } else {
+                renderer.set_color("red");
+            }
+            let center = &Point {
+                x: self.position.x,
+                y: self.position.y,
+            };
+            renderer.draw_rect(&Rect {
+                x: center.x - 10.0,
+                y: center.y + 10.0,
+                width: 20.0,
+                height: -20.0 - self.frame as f32,
+            });
+
+            renderer.draw_circle(center, 3.0);
         }
     }
 
