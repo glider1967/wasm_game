@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use crate::{
     engine::{KeyState, Point, Renderer},
     player::Player,
@@ -7,14 +5,19 @@ use crate::{
 
 pub struct Level {
     player: Player,
-    bullets: RefCell<Vec<Bullet>>,
+    enemies: Vec<Enemy>,
+    bullets: Vec<Bullet>,
 }
 
 impl Level {
     pub fn new() -> Self {
         Level {
             player: Player::new(),
-            bullets: RefCell::new(vec![
+            enemies: vec![Enemy::new(
+                Point { x: 300.0, y: 50.0 },
+                Point { x: 0.0, y: 0.0 },
+            )],
+            bullets: vec![
                 Bullet::new(
                     Point { x: 50.0, y: 50.0 },
                     Point { x: 5.0, y: 5.0 },
@@ -39,7 +42,7 @@ impl Level {
                     None,
                     None,
                 ),
-            ]),
+            ],
         }
     }
 
@@ -51,17 +54,19 @@ impl Level {
             self.player.bomb();
         }
 
-        for bullet in self.bullets.borrow_mut().iter_mut() {
+        for enemy in self.enemies.iter_mut() {
+            enemy.update(&mut self.bullets);
+        }
+
+        for bullet in self.bullets.iter_mut() {
             bullet.update();
         }
 
         // 画面外に飛んで行った弾を消す
-        self.bullets
-            .borrow_mut()
-            .retain(|bullet| bullet.in_canvas());
+        self.bullets.retain(|bullet| bullet.in_canvas());
 
         // プレイヤーと敵弾の衝突判定
-        for bullet in self.bullets.borrow().iter() {
+        for bullet in self.bullets.iter() {
             if self.player.is_collided(bullet) {
                 self.player.hit();
             }
@@ -70,7 +75,10 @@ impl Level {
 
     pub fn draw(&self, renderer: &Renderer) {
         self.player.draw(renderer);
-        for bullet in self.bullets.borrow().iter() {
+        for enemy in self.enemies.iter() {
+            enemy.draw(renderer);
+        }
+        for bullet in self.bullets.iter() {
             bullet.draw(renderer);
         }
     }
@@ -159,4 +167,37 @@ pub enum BulletEvent {
     RotateVel(f32),
     SetVel(Point),
     SetAcc(Point),
+}
+
+struct Enemy {
+    frame: u16, // 敵が生成されてからの経過フレーム
+    pos: Point, // 位置
+    vel: Point, // 速度
+}
+
+impl Enemy {
+    pub fn new(pos: Point, vel: Point) -> Self {
+        Self { frame: 0, pos, vel }
+    }
+
+    pub fn update(&mut self, bullets: &mut Vec<Bullet>) {
+        self.frame += 1;
+
+        self.pos.x += self.vel.x;
+        self.pos.y += self.vel.y;
+
+        if self.frame == 180 {
+            bullets.push(Bullet::new(
+                Point { x: 100.0, y: 100.0 },
+                Point { x: 0.0, y: 0.0 },
+                None,
+                None,
+            ));
+        }
+    }
+
+    pub fn draw(&self, renderer: &Renderer) {
+        renderer.set_color("pink");
+        renderer.draw_circle(&self.pos, 20.0);
+    }
 }
