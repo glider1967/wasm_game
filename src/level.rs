@@ -1,3 +1,5 @@
+use std::iter::Peekable;
+
 use crate::{
     engine::{KeyState, Point, Renderer},
     player::Player,
@@ -21,26 +23,35 @@ impl Level {
                 Bullet::new(
                     Point { x: 50.0, y: 50.0 },
                     Point { x: 5.0, y: 5.0 },
-                    None,
-                    None,
+                    Point { x: 0.0, y: 0.0 },
+                    vec![],
                 ),
                 Bullet::new(
                     Point { x: 300.0, y: 50.0 },
                     Point { x: 0.0, y: 4.0 },
-                    None,
-                    Some(vec![(60, BulletEvent::SetAcc(Point { x: 0.05, y: 0.02 }))]),
+                    Point { x: 0.0, y: 0.0 },
+                    vec![
+                        BulletEvent {
+                            at: 60,
+                            event_ty: BulletEventType::SetAcc(Point { x: 0.05, y: 0.02 }),
+                        },
+                        BulletEvent {
+                            at: 80,
+                            event_ty: BulletEventType::SetVel(Point { x: -0.3, y: 0.0 }),
+                        },
+                    ],
                 ),
                 Bullet::new(
                     Point { x: 400.0, y: 300.0 },
                     Point { x: -4.0, y: 4.0 },
-                    None,
-                    None,
+                    Point { x: 0.0, y: 0.0 },
+                    vec![],
                 ),
                 Bullet::new(
                     Point { x: 400.0, y: 300.0 },
                     Point { x: -4.0, y: -4.0 },
-                    None,
-                    None,
+                    Point { x: 0.0, y: 0.0 },
+                    vec![],
                 ),
             ],
         }
@@ -86,65 +97,57 @@ impl Level {
 
 #[derive(Clone)]
 pub struct Bullet {
-    frame: u16,                              // 弾が生成されてからの経過フレーム
-    pos: Point,                              // 位置
-    vel: Point,                              // 速度
-    acc: Option<Point>,                      // 加速度
-    events: Option<Vec<(u16, BulletEvent)>>, // 弾に起こる変化の列（タイミング、イベント）
-    next_event: usize,                       // 次に起こるイベント番号
-    next_event_at: Option<u16>,              // 次に起こるイベントのフレーム
+    frame: u16,                // 弾が生成されてからの経過フレーム
+    pos: Point,                // 位置
+    vel: Point,                // 速度
+    acc: Point,                // 加速度
+    events: Vec<BulletEvent>,  // 弾に起こる変化の列（タイミング、イベント）
+    next_event: Option<usize>, // 次に起こるイベント番号
 }
 
 impl Bullet {
-    pub fn new(
-        pos: Point,
-        vel: Point,
-        acc: Option<Point>,
-        events: Option<Vec<(u16, BulletEvent)>>,
-    ) -> Self {
-        let next_event_at = match &events {
-            Some(events) => Some(events[0].0),
-            None => None,
-        };
-
+    pub fn new(pos: Point, vel: Point, acc: Point, events: Vec<BulletEvent>) -> Self {
         Self {
             frame: 0,
             pos,
             vel,
             acc,
+            next_event: if events.is_empty() { None } else { Some(0) },
             events,
-            next_event: 0,
-            next_event_at,
         }
     }
 
     pub fn update(&mut self) {
         self.frame += 1;
 
-        if let Some(acc) = self.acc {
-            self.vel.x += acc.x;
-            self.vel.y += acc.y;
-        };
+        self.vel.x += self.acc.x;
+        self.vel.y += self.acc.y;
 
         self.pos.x += self.vel.x;
         self.pos.y += self.vel.y;
 
-        if Some(self.frame) == self.next_event_at {
-            let event = &self.events.as_ref().unwrap()[self.next_event].1;
+        if let Some(next_event) = self.next_event {
+            let event = &self.events[next_event];
 
-            match event {
-                BulletEvent::RotateVel(_) => {}
-                BulletEvent::SetVel(vel) => {
+            if event.at != self.frame {
+                return;
+            }
+
+            match event.event_ty {
+                BulletEventType::RotateVel(_) => {}
+                BulletEventType::SetVel(vel) => {
                     self.vel = vel.clone();
                 }
-                BulletEvent::SetAcc(acc) => {
-                    self.acc = Some(acc.clone());
+                BulletEventType::SetAcc(acc) => {
+                    self.acc = acc.clone();
                 }
             }
 
-            self.next_event += 1;
-            let next_event = self.events.as_ref().unwrap().get(self.next_event);
-            self.next_event_at = next_event.map(|event| event.0);
+            self.next_event = if next_event == self.events.len() - 1 {
+                None
+            } else {
+                Some(next_event + 1)
+            };
         }
     }
 
@@ -162,11 +165,17 @@ impl Bullet {
     }
 }
 
-#[derive(Clone)]
-pub enum BulletEvent {
+#[derive(Clone, Copy)]
+pub enum BulletEventType {
     RotateVel(f32),
     SetVel(Point),
     SetAcc(Point),
+}
+
+#[derive(Clone, Copy)]
+pub struct BulletEvent {
+    at: u16,
+    event_ty: BulletEventType,
 }
 
 struct Enemy {
@@ -190,8 +199,8 @@ impl Enemy {
             bullets.push(Bullet::new(
                 Point { x: 100.0, y: 100.0 },
                 Point { x: 0.0, y: 0.0 },
-                None,
-                None,
+                Point { x: 0.0, y: 0.0 },
+                vec![],
             ));
         }
     }
