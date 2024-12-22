@@ -2,8 +2,9 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 
 use crate::{
-    engine::{Game, KeyState, Rect, Renderer},
+    engine::{Game, KeyState, Renderer},
     level::Level,
+    math::Rect,
 };
 
 pub enum StgGame {

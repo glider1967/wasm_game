@@ -1,6 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, f64::consts::PI, rc::Rc};
 
-use crate::browser::{self, window, LoopClosure};
+use crate::{
+    browser::{self, window, LoopClosure},
+    math::{Point, Rect},
+};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use futures::channel::mpsc::{unbounded, UnboundedReceiver};
@@ -59,19 +62,6 @@ impl GameLoop {
         )?;
         Ok(())
     }
-}
-
-pub struct Rect {
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
-}
-
-#[derive(Clone, Copy)]
-pub struct Point {
-    pub x: f32,
-    pub y: f32,
 }
 
 pub struct Renderer {

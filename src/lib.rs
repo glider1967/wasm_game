@@ -8,6 +8,7 @@ mod browser;
 mod engine;
 mod game;
 mod level;
+mod math;
 mod player;
 
 // This is like the `main` function, except for JavaScript.

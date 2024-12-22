@@ -157,7 +157,10 @@ impl PlayerStateMachine {
 mod player_states {
     use std::marker::PhantomData;
 
-    use crate::engine::{Point, Rect, Renderer};
+    use crate::{
+        engine::Renderer,
+        math::{Point, Rect},
+    };
 
     use super::PlayerStateMachine;
     const FLOOR: f32 = 475.0;
