@@ -212,6 +212,12 @@ mod player_states {
             self
         }
 
+        fn set_pos(mut self, point: Point) -> Self {
+            self.position.x = point.x;
+            self.position.y = point.y;
+            self
+        }
+
         fn reset_frame(mut self) -> Self {
             self.frame = 0;
             self
@@ -354,7 +360,10 @@ mod player_states {
 
         pub fn end_reload(self) -> PlayerState<Alive> {
             PlayerState {
-                context: self.context.reset_frame(),
+                context: self
+                    .context
+                    .reset_frame()
+                    .set_pos(Point { x: 300.0, y: FLOOR }),
                 _state: PhantomData,
             }
         }
