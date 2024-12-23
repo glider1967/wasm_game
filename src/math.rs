@@ -14,6 +14,7 @@ pub struct Point {
 }
 
 impl Point {
+    #[allow(dead_code)]
     pub fn zero() -> Point {
         Point { x: 0.0, y: 0.0 }
     }

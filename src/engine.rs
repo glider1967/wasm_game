@@ -91,6 +91,7 @@ impl Renderer {
         );
     }
 
+    #[allow(dead_code)]
     pub fn draw_line(&self, start: &Point, end: &Point) {
         self.context.begin_path();
         self.context.move_to(start.x.into(), start.y.into());
@@ -99,6 +100,7 @@ impl Renderer {
         self.context.stroke();
     }
 
+    #[allow(dead_code)]
     pub fn draw_triangle(&self, p1: &Point, p2: &Point, p3: &Point) {
         self.context.begin_path();
         self.context.move_to(p1.x.into(), p1.y.into());
