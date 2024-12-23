@@ -1,6 +1,7 @@
 use crate::{
     engine::{KeyState, Renderer},
     level::Bullet,
+    math::Point,
 };
 
 use self::player_states::*;
@@ -36,6 +37,10 @@ impl Player {
         self.state_machine
             .context()
             .is_collided(&bullet.pos(), 10.0)
+    }
+
+    pub fn get_aim_rad(&self, point: &Point) -> f32 {
+        self.state_machine.context().get_aim_rad(point)
     }
 
     pub fn calc_velocity(keystate: &KeyState) -> (f32, f32) {
@@ -213,11 +218,17 @@ mod player_states {
         }
 
         pub fn is_collided(&self, point: &Point, radius: f32) -> bool {
-            let dx = point.x - self.position.x;
-            let dy = point.y - self.position.y;
+            let dx = self.position.x - point.x;
+            let dy = self.position.y - point.y;
             let distance = dx * dx + dy * dy;
             let r = radius + 3.0;
             distance < r * r
+        }
+
+        pub fn get_aim_rad(&self, point: &Point) -> f32 {
+            let dx = self.position.x - point.x;
+            let dy = self.position.y - point.y;
+            dy.atan2(dx)
         }
     }
 

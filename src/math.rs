@@ -41,6 +41,14 @@ impl Vector {
         Self { x: 0.0, y: 0.0 }
     }
 
+    pub fn from_deg_and_mag(deg: f32, mag: f32) -> Self {
+        let rad = deg * PI / 180.0;
+        Self {
+            x: mag * rad.cos(),
+            y: mag * rad.sin(),
+        }
+    }
+
     pub fn rotate(&self, deg: f32) -> Self {
         let rad = deg * PI / 180.0;
         Self {
