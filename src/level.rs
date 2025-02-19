@@ -147,10 +147,10 @@ impl Bullet {
                     self.vel = self.vel.rotate(deg);
                 }
                 BulletEventType::SetVel(vel) => {
-                    self.vel = vel.clone();
+                    self.vel = vel;
                 }
                 BulletEventType::SetAcc(acc) => {
-                    self.acc = acc.clone();
+                    self.acc = acc;
                 }
             }
 

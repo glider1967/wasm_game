@@ -136,9 +136,9 @@ impl PlayerStateMachine {
 
     fn context(&self) -> &PlayerContext {
         match self {
-            PlayerStateMachine::Alive(state) => &state.context(),
-            PlayerStateMachine::Bombing(state) => &state.context(),
-            PlayerStateMachine::Reloading(state) => &state.context(),
+            PlayerStateMachine::Alive(state) => state.context(),
+            PlayerStateMachine::Bombing(state) => state.context(),
+            PlayerStateMachine::Reloading(state) => state.context(),
         }
     }
 
@@ -196,18 +196,8 @@ mod player_states {
             self.position.x += self.velocity.x;
             self.position.y += self.velocity.y;
 
-            if self.position.x < 50.0 {
-                self.position.x = 50.0;
-            }
-            if self.position.x > 550.0 {
-                self.position.x = 550.0;
-            }
-            if self.position.y < 30.0 {
-                self.position.y = 30.0;
-            }
-            if self.position.y > 570.0 {
-                self.position.y = 570.0;
-            }
+            self.position.x = self.position.x.clamp(50.0, 550.0);
+            self.position.y = self.position.y.clamp(30.0, 570.0);
 
             self
         }
